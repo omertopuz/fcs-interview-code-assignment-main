@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Warehouse Fulfilment API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Warehouse",
+      "item": [
+        {
+          "name": "List All Warehouses",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/warehouse"
+          }
+        },
+        {
+          "name": "Get Warehouse by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/warehouse/1"
+          }
+        },
+        {
+          "name": "Create Warehouse",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/warehouse",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessUnitCode\": \"MWH.NEW\",\n  \"location\": \"AMSTERDAM-001\",\n  \"capacity\": 50,\n  \"stock\": 10\n}"
+            }
+          }
+        },
+        {
+          "name": "Archive Warehouse",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/warehouse/1"
+          }
+        },
+        {
+          "name": "Replace Warehouse",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/warehouse/MWH.001/replacement",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessUnitCode\": \"MWH.001\",\n  \"location\": \"ZWOLLE-001\",\n  \"capacity\": 100,\n  \"stock\": 10\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Store",
+      "item": [
+        {
+          "name": "List All Stores",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/store"
+          }
+        },
+        {
+          "name": "Get Store by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/store/1"
+          }
+        },
+        {
+          "name": "Create Store",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/store",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"NEW STORE\",\n  \"quantityProductsInStock\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Store",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/store/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"UPDATED STORE\",\n  \"quantityProductsInStock\": 150\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Store",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/store/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "item": [
+        {
+          "name": "List All Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/product"
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/product/1"
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/product",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"NEW PRODUCT\",\n  \"description\": \"Product description\",\n  \"price\": 29.99,\n  \"stock\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/product/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"UPDATED PRODUCT\",\n  \"description\": \"Updated description\",\n  \"price\": 39.99,\n  \"stock\": 50\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/product/1"
+          }
+        }
+      ]
+    }
+  ]
+}
