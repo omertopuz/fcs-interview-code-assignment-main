@@ -1,25 +1,30 @@
 package com.fulfilment.application.monolith.warehouses.adapters.restapi;
 
 import com.fulfilment.application.monolith.warehouses.adapters.database.WarehouseRepository;
-import com.fulfilment.application.monolith.warehouses.domain.usecases.ArchiveWarehouseUseCase;
-import com.fulfilment.application.monolith.warehouses.domain.usecases.CreateWarehouseUseCase;
-import com.fulfilment.application.monolith.warehouses.domain.usecases.ReplaceWarehouseUseCase;
+import com.fulfilment.application.monolith.warehouses.domain.WarehouseNotFoundException;
+import com.fulfilment.application.monolith.warehouses.domain.WarehouseValidationException;
+import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
+import com.fulfilment.application.monolith.warehouses.domain.ports.CreateWarehouseOperation;
+import com.fulfilment.application.monolith.warehouses.domain.ports.ReplaceWarehouseOperation;
 import com.warehouse.api.WarehouseResource;
 import com.warehouse.api.beans.Warehouse;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 @RequestScoped
 public class WarehouseResourceImpl implements WarehouseResource {
 
   @Inject private WarehouseRepository warehouseRepository;
-  @Inject private CreateWarehouseUseCase createWarehouseUseCase;
-  @Inject private ReplaceWarehouseUseCase replaceWarehouseUseCase;
-  @Inject private ArchiveWarehouseUseCase archiveWarehouseUseCase;
+
+  @Inject private CreateWarehouseOperation createWarehouseOperation;
+
+  @Inject private ArchiveWarehouseOperation archiveWarehouseOperation;
+
+  @Inject private ReplaceWarehouseOperation replaceWarehouseOperation;
 
   @Override
   public List<Warehouse> listAllWarehousesUnits() {
@@ -27,60 +32,56 @@ public class WarehouseResourceImpl implements WarehouseResource {
   }
 
   @Override
-  @Transactional
   public Warehouse createANewWarehouseUnit(@NotNull Warehouse data) {
     try {
       var domainWarehouse = toDomainWarehouse(data);
-      createWarehouseUseCase.create(domainWarehouse);
-      var created = warehouseRepository.findByBusinessUnitCode(data.getBusinessUnitCode());
-      return toWarehouseResponse(created);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), 400);
+      createWarehouseOperation.create(domainWarehouse);
+
+      // Fetch the created warehouse to return it
+      var createdWarehouse =
+          warehouseRepository.findByBusinessUnitCode(data.getBusinessUnitCode());
+      return toWarehouseResponse(createdWarehouse);
+    } catch (WarehouseValidationException e) {
+      throw new WebApplicationException(e.getMessage(), Response.Status.BAD_REQUEST);
     }
   }
 
   @Override
   public Warehouse getAWarehouseUnitByID(String id) {
-    try {
-      Long warehouseId = Long.parseLong(id);
-      var warehouse = warehouseRepository.getWarehouseById(warehouseId);
-      if (warehouse == null) {
-        throw new WebApplicationException("Warehouse not found", 404);
-      }
-      return toWarehouseResponse(warehouse);
-    } catch (NumberFormatException e) {
-      throw new WebApplicationException("Invalid warehouse ID format", 400);
+    var warehouse = warehouseRepository.findByBusinessUnitCode(id);
+    if (warehouse == null) {
+      throw new WebApplicationException(
+          "Warehouse not found with id: " + id, Response.Status.NOT_FOUND);
     }
+    return toWarehouseResponse(warehouse);
   }
 
   @Override
-  @Transactional
   public void archiveAWarehouseUnitByID(String id) {
     try {
-      Long warehouseId = Long.parseLong(id);
-      var warehouse = warehouseRepository.getWarehouseById(warehouseId);
-      if (warehouse == null) {
-        throw new WebApplicationException("Warehouse not found", 404);
-      }
-      archiveWarehouseUseCase.archive(warehouse);
-    } catch (NumberFormatException e) {
-      throw new WebApplicationException("Invalid warehouse ID format", 400);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), 400);
+      var warehouse = new com.fulfilment.application.monolith.warehouses.domain.models.Warehouse();
+      warehouse.businessUnitCode = id;
+      archiveWarehouseOperation.archive(warehouse);
+    } catch (WarehouseNotFoundException e) {
+      throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
     }
   }
 
   @Override
-  @Transactional
   public Warehouse replaceTheCurrentActiveWarehouse(
       String businessUnitCode, @NotNull Warehouse data) {
     try {
-      var domainWarehouse = toDomainWarehouse(data);
-      replaceWarehouseUseCase.replace(domainWarehouse);
-      var updated = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
-      return toWarehouseResponse(updated);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), 400);
+      var newWarehouse = toDomainWarehouse(data);
+      newWarehouse.businessUnitCode = businessUnitCode;
+      replaceWarehouseOperation.replace(newWarehouse);
+
+      // Fetch the created warehouse to return it
+      var createdWarehouse = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
+      return toWarehouseResponse(createdWarehouse);
+    } catch (WarehouseNotFoundException e) {
+      throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
+    } catch (WarehouseValidationException e) {
+      throw new WebApplicationException(e.getMessage(), Response.Status.BAD_REQUEST);
     }
   }
 
@@ -97,11 +98,11 @@ public class WarehouseResourceImpl implements WarehouseResource {
 
   private com.fulfilment.application.monolith.warehouses.domain.models.Warehouse toDomainWarehouse(
       Warehouse apiWarehouse) {
-    var domainWarehouse = new com.fulfilment.application.monolith.warehouses.domain.models.Warehouse();
-    domainWarehouse.businessUnitCode = apiWarehouse.getBusinessUnitCode();
-    domainWarehouse.location = apiWarehouse.getLocation();
-    domainWarehouse.capacity = apiWarehouse.getCapacity();
-    domainWarehouse.stock = apiWarehouse.getStock();
-    return domainWarehouse;
+    var warehouse = new com.fulfilment.application.monolith.warehouses.domain.models.Warehouse();
+    warehouse.businessUnitCode = apiWarehouse.getBusinessUnitCode();
+    warehouse.location = apiWarehouse.getLocation();
+    warehouse.capacity = apiWarehouse.getCapacity();
+    warehouse.stock = apiWarehouse.getStock();
+    return warehouse;
   }
 }

@@ -4,6 +4,7 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import java.util.List;
 
 @ApplicationScoped
@@ -11,16 +12,17 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
 
   @Override
   public List<Warehouse> getAll() {
-    return this.listAll().stream().map(DbWarehouse::toWarehouse).toList();
+    return find("archivedAt is null").stream().map(DbWarehouse::toWarehouse).toList();
+  }
+
+  public List<Warehouse> findActiveByLocation(String location) {
+    return find("location = ?1 and archivedAt is null", location).stream()
+        .map(DbWarehouse::toWarehouse)
+        .toList();
   }
 
   @Override
-  public Warehouse getWarehouseById(Long id) {
-    DbWarehouse dbWarehouse = this.find("id", id).firstResult();
-    return dbWarehouse != null ? dbWarehouse.toWarehouse() : null;
-  }
-
-  @Override
+  @Transactional
   public void create(Warehouse warehouse) {
     DbWarehouse dbWarehouse = new DbWarehouse();
     dbWarehouse.businessUnitCode = warehouse.businessUnitCode;
@@ -29,38 +31,38 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
     dbWarehouse.stock = warehouse.stock;
     dbWarehouse.createdAt = warehouse.createdAt;
     dbWarehouse.archivedAt = warehouse.archivedAt;
-    this.persist(dbWarehouse);
+    persist(dbWarehouse);
   }
 
   @Override
+  @Transactional
   public void update(Warehouse warehouse) {
-    DbWarehouse dbWarehouse = this.find("businessUnitCode", warehouse.businessUnitCode).firstResult();
+    DbWarehouse dbWarehouse =
+        find("businessUnitCode = ?1 and archivedAt is null", warehouse.businessUnitCode)
+            .firstResult();
     if (dbWarehouse != null) {
-      dbWarehouse.businessUnitCode = warehouse.businessUnitCode;
       dbWarehouse.location = warehouse.location;
       dbWarehouse.capacity = warehouse.capacity;
       dbWarehouse.stock = warehouse.stock;
-      dbWarehouse.createdAt = warehouse.createdAt;
       dbWarehouse.archivedAt = warehouse.archivedAt;
     }
   }
 
   @Override
+  @Transactional
   public void remove(Warehouse warehouse) {
-    DbWarehouse dbWarehouse = this.find("businessUnitCode", warehouse.businessUnitCode).firstResult();
-    if (dbWarehouse != null) {
-      this.delete(dbWarehouse);
-    }
+    delete("businessUnitCode", warehouse.businessUnitCode);
   }
 
   @Override
   public Warehouse findByBusinessUnitCode(String buCode) {
-    DbWarehouse dbWarehouse = this.find("businessUnitCode", buCode).firstResult();
+    DbWarehouse dbWarehouse =
+        find("businessUnitCode = ?1 and archivedAt is null", buCode).firstResult();
     return dbWarehouse != null ? dbWarehouse.toWarehouse() : null;
   }
 
-  @Override
-  public long countActiveByLocation(String location) {
-    return this.find("location = ?1 and archivedAt is null", location).count();
+  public Warehouse findAnyByBusinessUnitCode(String buCode) {
+    DbWarehouse dbWarehouse = find("businessUnitCode", buCode).firstResult();
+    return dbWarehouse != null ? dbWarehouse.toWarehouse() : null;
   }
 }

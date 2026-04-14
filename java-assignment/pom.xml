@@ -118,14 +118,20 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
+                        <!-- Products package -->
                         <exclude>com/fulfilment/application/monolith/products/*</exclude>
+                        <!-- Stores package -->
                         <exclude>com/fulfilment/application/monolith/stores/*</exclude>
+                        <!-- Warehouse domain models and ports -->
                         <exclude>com/fulfilment/application/monolith/warehouses/domain/models/Warehouse.class</exclude>
                         <exclude>com/fulfilment/application/monolith/warehouses/domain/models/Location.class</exclude>
                         <exclude>com/fulfilment/application/monolith/warehouses/domain/ports/*</exclude>
-                        <exclude>com/fulfilment/application/monolith/warehouses/domain/exceptions/*</exclude>
+                        <exclude>com/fulfilment/application/monolith/warehouses/domain/WarehouseNotFoundException.class</exclude>
+                        <exclude>com/fulfilment/application/monolith/warehouses/domain/WarehouseValidationException.class</exclude>
+                        <!-- Database adapters -->
                         <exclude>com/fulfilment/application/monolith/warehouses/adapters/database/*</exclude>
-                        <exclude>com/warehouse/api/*</exclude>
+                        <!-- Generated OpenAPI code -->
+                        <exclude>com/warehouse/api/**/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -149,14 +155,16 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <element>BUNDLE</element>
-                                <limits>
-                                    <limit>
-                                        <counter>LINE</counter>
-                                        <value>COVEREDRATIO</value>
-                                        <minimum>0.80</minimum>
-                                    </limit>
-                                </limits>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
                             </rules>
                         </configuration>
                     </execution>

@@ -7,8 +7,6 @@ public interface WarehouseStore {
 
   List<Warehouse> getAll();
 
-  Warehouse getWarehouseById(Long id);
-
   void create(Warehouse warehouse);
 
   void update(Warehouse warehouse);
@@ -16,6 +14,4 @@ public interface WarehouseStore {
   void remove(Warehouse warehouse);
 
   Warehouse findByBusinessUnitCode(String buCode);
-
-  long countActiveByLocation(String location);
 }

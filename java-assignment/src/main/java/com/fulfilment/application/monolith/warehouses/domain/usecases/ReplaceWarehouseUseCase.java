@@ -1,62 +1,100 @@
 package com.fulfilment.application.monolith.warehouses.domain.usecases;
 
+import com.fulfilment.application.monolith.warehouses.adapters.database.WarehouseRepository;
+import com.fulfilment.application.monolith.warehouses.domain.WarehouseNotFoundException;
+import com.fulfilment.application.monolith.warehouses.domain.WarehouseValidationException;
 import com.fulfilment.application.monolith.warehouses.domain.models.Location;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
+import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.LocationResolver;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ReplaceWarehouseOperation;
-import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @ApplicationScoped
 public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
 
-  private final WarehouseStore warehouseStore;
+  private final WarehouseRepository warehouseRepository;
   private final LocationResolver locationResolver;
+  private final ArchiveWarehouseOperation archiveWarehouseOperation;
 
-  public ReplaceWarehouseUseCase(WarehouseStore warehouseStore, LocationResolver locationResolver) {
-    this.warehouseStore = warehouseStore;
+  public ReplaceWarehouseUseCase(
+      WarehouseRepository warehouseRepository,
+      LocationResolver locationResolver,
+      ArchiveWarehouseOperation archiveWarehouseOperation) {
+    this.warehouseRepository = warehouseRepository;
     this.locationResolver = locationResolver;
+    this.archiveWarehouseOperation = archiveWarehouseOperation;
   }
 
   @Override
   public void replace(Warehouse newWarehouse) {
-    // Find the existing warehouse
-    Warehouse existingWarehouse = warehouseStore.findByBusinessUnitCode(newWarehouse.businessUnitCode);
-    if (existingWarehouse == null || existingWarehouse.archivedAt != null) {
-      throw new IllegalArgumentException("Warehouse not found: " + newWarehouse.businessUnitCode);
+    // Find the existing warehouse that is being replaced
+    Warehouse existingWarehouse =
+        warehouseRepository.findByBusinessUnitCode(newWarehouse.businessUnitCode);
+    if (existingWarehouse == null) {
+      throw new WarehouseNotFoundException(
+          "Warehouse not found with business unit code: " + newWarehouse.businessUnitCode);
     }
 
-    // 1. Validate location exists
-    Location location = locationResolver.resolveByIdentifier(newWarehouse.location);
-    if (location == null) {
-      throw new IllegalArgumentException("Invalid location: " + newWarehouse.location);
+    // Validation: Location Validation
+    Location newLocation = locationResolver.resolveByIdentifier(newWarehouse.location);
+    if (newLocation == null) {
+      throw new WarehouseValidationException("Invalid location: " + newWarehouse.location);
     }
 
-    // 2. Check warehouse count at location (excluding current warehouse if moving to different location)
-    if (!existingWarehouse.location.equals(newWarehouse.location)) {
-      long warehouseCount = warehouseStore.countActiveByLocation(newWarehouse.location);
-      if (warehouseCount >= location.maxNumberOfWarehouses) {
-        throw new IllegalArgumentException("Maximum number of warehouses reached for location: " + newWarehouse.location);
-      }
+    // Validation: Capacity Accommodation
+    // Ensure the new warehouse's capacity can accommodate the stock from the warehouse being
+    // replaced
+    if (newWarehouse.capacity < existingWarehouse.stock) {
+      throw new WarehouseValidationException(
+          "New warehouse capacity ("
+              + newWarehouse.capacity
+              + ") cannot accommodate the stock from the warehouse being replaced ("
+              + existingWarehouse.stock
+              + ")");
     }
 
-    // 3. Validate capacity doesn't exceed location maximum
-    if (newWarehouse.capacity > location.maxCapacity) {
-      throw new IllegalArgumentException("Warehouse capacity exceeds location maximum capacity");
+    // Validation: Stock Matching
+    // Confirm that the stock of the new warehouse matches the stock of the previous warehouse
+    if (newWarehouse.stock != null
+        && !newWarehouse.stock.equals(existingWarehouse.stock)) {
+      throw new WarehouseValidationException(
+          "Stock of the new warehouse ("
+              + newWarehouse.stock
+              + ") must match the stock of the previous warehouse ("
+              + existingWarehouse.stock
+              + ")");
     }
 
-    // 4. Validate new warehouse capacity can accommodate existing stock
-    if (existingWarehouse.stock > newWarehouse.capacity) {
-      throw new IllegalArgumentException("New warehouse capacity cannot accommodate existing stock");
+    // Validate capacity doesn't exceed location's max capacity (considering old warehouse is being
+    // replaced)
+    List<Warehouse> activeWarehousesAtLocation =
+        warehouseRepository.findActiveByLocation(newWarehouse.location);
+    int currentTotalCapacity =
+        activeWarehousesAtLocation.stream()
+            .filter(w -> !w.businessUnitCode.equals(newWarehouse.businessUnitCode))
+            .mapToInt(w -> w.capacity)
+            .sum();
+    if (currentTotalCapacity + newWarehouse.capacity > newLocation.maxCapacity) {
+      throw new WarehouseValidationException(
+          "New warehouse capacity exceeds location maximum capacity. Available capacity: "
+              + (newLocation.maxCapacity - currentTotalCapacity));
     }
 
-    // 5. Validate stock matches (replacement stocks should be the same)
-    if (!existingWarehouse.stock.equals(newWarehouse.stock)) {
-      throw new IllegalArgumentException("Stock of new warehouse must match the stock of warehouse being replaced");
+    // Archive the existing warehouse
+    archiveWarehouseOperation.archive(existingWarehouse);
+
+    // Set the stock to match the previous warehouse if not explicitly set
+    if (newWarehouse.stock == null) {
+      newWarehouse.stock = existingWarehouse.stock;
     }
 
-    // Update the warehouse
-    newWarehouse.createdAt = existingWarehouse.createdAt;
-    warehouseStore.update(newWarehouse);
+    // Set creation timestamp for the new warehouse
+    newWarehouse.createdAt = LocalDateTime.now();
+
+    // Create the new warehouse with the same business unit code
+    warehouseRepository.create(newWarehouse);
   }
 }

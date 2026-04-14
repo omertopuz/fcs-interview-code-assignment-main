@@ -1,89 +1,151 @@
 package com.fulfilment.application.monolith.location;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fulfilment.application.monolith.warehouses.domain.models.Location;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class LocationGatewayTest {
 
-  @Test
-  void shouldReturnLocationWhenIdentifierExists() {
-    // Arrange
-    LocationGateway gateway = new LocationGateway();
+  private LocationGateway locationGateway;
 
-    // Act
-    Location result = gateway.resolveByIdentifier("AMSTERDAM-001");
-
-    // Assert
-    assertNotNull(result);
-    assertEquals("AMSTERDAM-001", result.identification);
-    assertEquals(5, result.maxNumberOfWarehouses);
-    assertEquals(100, result.maxCapacity);
+  @BeforeEach
+  public void setUp() {
+    locationGateway = new LocationGateway();
   }
 
   @Test
-  void shouldReturnNullWhenIdentifierNotFound() {
-    // Arrange
-    LocationGateway gateway = new LocationGateway();
+  public void testWhenResolveExistingLocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("ZWOLLE-001");
 
-    // Act
-    Location result = gateway.resolveByIdentifier("INVALID-001");
-
-    // Assert
-    assertNull(result);
+    // then
+    assertNotNull(location);
+    assertEquals("ZWOLLE-001", location.identification);
+    assertEquals(1, location.maxNumberOfWarehouses);
+    assertEquals(40, location.maxCapacity);
   }
 
   @Test
-  void shouldReturnCorrectPropertiesForZwolle001() {
-    // Arrange
-    LocationGateway gateway = new LocationGateway();
+  public void testWhenResolveNonExistingLocationShouldReturnNull() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("INVALID-LOCATION");
 
-    // Act
-    Location result = gateway.resolveByIdentifier("ZWOLLE-001");
-
-    // Assert
-    assertNotNull(result);
-    assertEquals("ZWOLLE-001", result.identification);
-    assertEquals(1, result.maxNumberOfWarehouses);
-    assertEquals(40, result.maxCapacity);
+    // then
+    assertNull(location);
   }
 
   @Test
-  void shouldReturnCorrectPropertiesForAmsterdam002() {
-    // Arrange
-    LocationGateway gateway = new LocationGateway();
+  public void testWhenResolveAmsterdamLocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("AMSTERDAM-001");
 
-    // Act
-    Location result = gateway.resolveByIdentifier("AMSTERDAM-002");
-
-    // Assert
-    assertNotNull(result);
-    assertEquals("AMSTERDAM-002", result.identification);
-    assertEquals(3, result.maxNumberOfWarehouses);
-    assertEquals(75, result.maxCapacity);
+    // then
+    assertNotNull(location);
+    assertEquals("AMSTERDAM-001", location.identification);
+    assertEquals(5, location.maxNumberOfWarehouses);
+    assertEquals(100, location.maxCapacity);
   }
 
   @Test
-  void shouldReturnAllValidLocations() {
-    // Arrange
-    LocationGateway gateway = new LocationGateway();
-    String[] validLocations = {
-      "ZWOLLE-001",
-      "ZWOLLE-002",
-      "AMSTERDAM-001",
-      "AMSTERDAM-002",
-      "TILBURG-001",
-      "HELMOND-001",
-      "EINDHOVEN-001",
-      "VETSBY-001"
-    };
+  public void testWhenResolveZwolle002LocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("ZWOLLE-002");
 
-    // Act & Assert
-    for (String locationId : validLocations) {
-      Location result = gateway.resolveByIdentifier(locationId);
-      assertNotNull(result, "Location " + locationId + " should exist");
-      assertEquals(locationId, result.identification);
-    }
+    // then
+    assertNotNull(location);
+    assertEquals("ZWOLLE-002", location.identification);
+    assertEquals(2, location.maxNumberOfWarehouses);
+    assertEquals(50, location.maxCapacity);
+  }
+
+  @Test
+  public void testWhenResolveAmsterdam002LocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("AMSTERDAM-002");
+
+    // then
+    assertNotNull(location);
+    assertEquals("AMSTERDAM-002", location.identification);
+    assertEquals(3, location.maxNumberOfWarehouses);
+    assertEquals(75, location.maxCapacity);
+  }
+
+  @Test
+  public void testWhenResolveTilburg001LocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("TILBURG-001");
+
+    // then
+    assertNotNull(location);
+    assertEquals("TILBURG-001", location.identification);
+    assertEquals(1, location.maxNumberOfWarehouses);
+    assertEquals(40, location.maxCapacity);
+  }
+
+  @Test
+  public void testWhenResolveHelmond001LocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("HELMOND-001");
+
+    // then
+    assertNotNull(location);
+    assertEquals("HELMOND-001", location.identification);
+    assertEquals(1, location.maxNumberOfWarehouses);
+    assertEquals(45, location.maxCapacity);
+  }
+
+  @Test
+  public void testWhenResolveEindhoven001LocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("EINDHOVEN-001");
+
+    // then
+    assertNotNull(location);
+    assertEquals("EINDHOVEN-001", location.identification);
+    assertEquals(2, location.maxNumberOfWarehouses);
+    assertEquals(70, location.maxCapacity);
+  }
+
+  @Test
+  public void testWhenResolveVetsby001LocationShouldReturn() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("VETSBY-001");
+
+    // then
+    assertNotNull(location);
+    assertEquals("VETSBY-001", location.identification);
+    assertEquals(1, location.maxNumberOfWarehouses);
+    assertEquals(90, location.maxCapacity);
+  }
+
+  @Test
+  public void testWhenResolveNullIdentifierShouldReturnNull() {
+    // when
+    Location location = locationGateway.resolveByIdentifier(null);
+
+    // then
+    assertNull(location);
+  }
+
+  @Test
+  public void testWhenResolveEmptyIdentifierShouldReturnNull() {
+    // when
+    Location location = locationGateway.resolveByIdentifier("");
+
+    // then
+    assertNull(location);
+  }
+
+  @Test
+  public void testWhenResolveCaseSensitiveIdentifierShouldReturnNull() {
+    // when - identifiers are case-sensitive
+    Location location = locationGateway.resolveByIdentifier("zwolle-001");
+
+    // then
+    assertNull(location);
   }
 }
